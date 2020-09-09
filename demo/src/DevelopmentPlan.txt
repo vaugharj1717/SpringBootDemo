@@ -1,0 +1,6 @@
+1) Define Requirements
+2) Define Schema and implement
+3) Define all API calls and implement
+4) Add business logic (failure cases) to API calls
+5) Add authentication
+6) Add authentication logic to API calls
