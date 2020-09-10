@@ -10,10 +10,10 @@ in its responses, but instead will just send JSON which the React.JS app can use
 
 In the main/java/(...) folder four packages can be seen. These packages each correspond to a different layer of the project.
 
-1) Controllers  [Catches URL]
-2) Services     [Business Logic]
-3) DAOs         [Data retrieval / persistence]
-4) Entities     [Representation of Database entities as Java objects]
+1) Controllers  [Catches URL, Unpacks/packs JSON, executes Service functions to do whatever job is needed]
+2) Services     [Business Logic, executes DAO functions to get whatever data is needed]
+3) DAOs         [Data retrieval / persistence, uses Entities to represent (in Java) whatever data is needed]
+4) Entities     [Representation of Database entities as Java objects. Conversion to DB objects is automatic]
 
 The flow control will normally go like this...
 -User enters URL into browser (or clicks on a link, etc)
@@ -60,7 +60,7 @@ DAOs
     -This tag is only used once, and can be found in the AbstractDAO class
     -Tells Spring Boot that the EntityManagerFactory object will be used to manage all the behind-the-scenes database stuff
     -Since all of our DAOs will extend the AbstractDAO class, they will have access to this EntityManagerFactory object
-    -This object can create an EntityManager for each of our database transactions
+    -This object can create an EntityManager object to be used for each of our database transactions
     -This EntityManager object has all the functionality we need to do database stuff
         ex) Can begin/commit/rollback transactions
         ex) Can query, save, delete data from database based on whatever search criteria we give it
@@ -79,20 +79,20 @@ TAKEAWAY: We can design our database schema entirely in Java, no need to use Dat
     -Goes above the Id field for an entity so Spring Boot knows to treat the ID as a Primary Key
     -The @GeneratedValue tag tells Spring to automatically generate an ID for the entity (normally by incrementing)
 @ManyToOne
-    -If an entity is the "Many" side of a ManyToOne relationship,
-     this tag goes above the field corresponding to the "one" side
+    -If an entity is the "Many" side of a ManyToOne relationship, then
+        this tag goes above the field corresponding to the "one" side
 @OneToMany
-    -If an entity is the "One" side of a OneToMany relationship,
-     this tag goes above the list corresponding to the "many" side
+    -If an entity is the "One" side of a OneToMany relationship, then
+        this tag goes above the list corresponding to the "many" side
 @OneToOne
-    -If an entity has a one-to-one relationship,
-     this tag goes above the field corresponding to the other side of the relationship
+    -If an entity has a one-to-one relationship, then
+        this tag goes above the field corresponding to the other side of the relationship
 @ManyToMany
     -Also exists, creates an implicit Join-Table behind the scenes
     -A lot of Spring users suggest not using this, and to just explicitly define your JoinTables to make life easier
 @Transient
     -Goes above a field if the field should NOT be placed in the database
-    -Not used often. Might use it for password security reasons?
+    -Not used too often. Might use it for password security reasons?
 Cascade Types
     -Attached as a parameter to a @ManyToOne, @OneToMany, or @OneToOne
         -ex) @OneToOne(cascade = CascadeType.ALL)
@@ -118,10 +118,11 @@ em.createQuery(String query)        Used to create a Query object. Query object 
     -The query is a JPQL query (Java Persistence Query Language)
     -Since Spring will automatically fill in linked entities for us, we don't need to do too many joins
         -ex) instead of doing "SELECT u FROM User u JOIN UserDetails ud" we can just do "SELECT u FROM User u"
-             if we need to access the UserDetails object, Spring Boot will get that data for us automatically
-             behind the scenes
+             then, when/if we need to access the UserDetails object, Spring Boot will get that data for us automatically
+             behind the scenes when we try to access it
         -TAKEAWAY: Complex JOINS normally not necessary. Just SELECT one type of entity and when you need to access
-                   a related entity just use that objects .getXYZ() function to "grab" that entity
+                   a related entity just use that objects .getXYZ() function to "grab" that entity. You can traverse
+                   through the "entity-graph" simply through entity's getter methods.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Interfacing
@@ -146,13 +147,16 @@ The current strategy for parsing JSON requests and creating JSON responses is no
 we can switch to that. Currently I am doing the following...
 
 To PARSE Json from an HTTP request...
-    1) Declare this variable in the controller class:       JsonParser parser = JsonParserFactory.getJsonParser();
+    1) Declare this variable in the controller class:
+            JsonParser parser = JsonParserFactory.getJsonParser();
     2) Declare "@RequestBody" String body" as a parameter in the controller function
-    3) Put this line of code at beginning of function:      Map<String, Object> bodyMap = parser.parseMap(body);
-    4) Now JSON values can be pulled from map with:         bodyMap.get("keyNameGoesHere")
+    3) Put this line of code at beginning of function:
+            Map<String, Object> bodyMap = parser.parseMap(body);
+    4) Now JSON values can be pulled from map by key with:
+            bodyMap.get("keyNameGoesHere")
 
 To CREATE Json to return to user
-    1) Autowire this variable into controller class with setter:
+    1) Autowire this variable into controller class with setter as shown below:
             ObjectMapper mapper;
             @Autowired
             public void setObjectMapper(ObjectMapper objectMapper) { this.mapper = objectMapper; }
@@ -160,7 +164,7 @@ To CREATE Json to return to user
             ObjectNode response = mapper.createObjectNode();
     3) Add key/values to JSON with
             response.put("KeyName", value_here);
-    4) If necessary, you can add nested objects (nodes within nodes)
+    4) If necessary, you can add nested objects (nodes within nodes, just like how JSON can have objects within objects)
     5) Return the ObjectNode
             return response;
 
@@ -175,4 +179,4 @@ Eventually we will have these files configured to use a MySQL database during ru
 During testing, we can use the H2 database (an in-memory database) that we can fill with preconfigured data each
 time tests are run so we have predictable data sets to run our tests against.
 
-Coming soon...
+More coming soon...
