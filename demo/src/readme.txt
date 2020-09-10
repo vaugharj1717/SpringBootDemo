@@ -8,7 +8,7 @@ Our frontend will be using React.Js
 Since React.Js is used to create single-page web applications, our backend system will NOT send HTML/CSS/Javascript
 in its responses, but instead will just send JSON which the React.JS app can use to modify the view
 
-In the main/java/(...) folder four packages can be seen. These packages each correspond to a different layer of the project.
+In the main/java/(...) folder four packages can be seen. These packages each correspond to a different layer of the project
 
 1) Controllers  [Catches URL, Unpacks/packs JSON, executes Service functions to do whatever job is needed]
 2) Services     [Business Logic, executes DAO functions to get whatever data is needed]
@@ -18,15 +18,16 @@ In the main/java/(...) folder four packages can be seen. These packages each cor
 The flow control will normally go like this...
 -User enters URL into browser (or clicks on a link, etc)
 -The controller layer will "catch" the URL and call a service function
--The service function will employ any business logic, and ask DAO to get data from database
--DAO will retrieve/update/delete data from database. Automatically converts DB data into "Entities" to do this
--Call stack makes it's way back to controller, who will return JSON response to User.
+-The service function will take care of any business logic, and ask DAO to insert/retrieve data to/from database when needed
+-DAO will retrieve/update/delete data from database. The tools we use will automatically converts DB data into "Entities" to do this
+-Call stack makes it's way back to controller function, which will return JSON response to User (even if just a "success: true" message)
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ANNOTATIONS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 A lot of Spring Boot's logic is executed through annotations (using @ syntax above class or function definitions).
 Below is some information on various annotations and how they relate to Spring's built-in functionality
+(Some annotations only used for configuration, not too important so not listed below)
 
 ALL
 ----------
@@ -115,14 +116,21 @@ em.getTransaction.begin()       Begins DB transaction
 em.getTransaction.commit()      Commits DB transaction
 em.getTransaction.rollback()    Rolls back DB transactions
 em.createQuery(String query)        Used to create a Query object. Query object uses JPQL (Java persistence query language... more info below)
-    -The query is a JPQL query (Java Persistence Query Language)
-    -Since Spring will automatically fill in linked entities for us, we don't need to do too many joins
+    -Queries will be written in JPQL (Java Persistence Query Language...)
+    -JPQL is similar to SQL, but lets us think in terms of objects instead of tables and columns
+        -ex) select u from user u
+    -If you want to grab related entities, use JOIN FETCH (only using JOIN won't bring the data into our system)
+        -ex) select u from User u JOIN FETCH u.UserDetails ud
+        -This will return all users and also populate the UserDetails field for each one.
+    -If you didn't FETCH JOIN data, but try to access it anyways, Spring will do a hidden query automatically to get the data for you
         -ex) instead of doing "SELECT u FROM User u JOIN UserDetails ud" we can just do "SELECT u FROM User u"
-             then, when/if we need to access the UserDetails object, Spring Boot will get that data for us automatically
-             behind the scenes when we try to access it
-        -TAKEAWAY: Complex JOINS normally not necessary. Just SELECT one type of entity and when you need to access
+             then, when/if we need to access the UserDetails object, Spring Boot will get that data for us automatically.
+        -TAKEAWAY: Complex JOINS can sometimes be avoided. Just SELECT one type of entity and when you need to access
                    a related entity just use that objects .getXYZ() function to "grab" that entity. You can traverse
                    through the "entity-graph" simply through entity's getter methods.
+        -ex) objectA.getObjectB().getObjectC().getData();
+        -Doing things this way can cause performance issues when it comes to large amounts of data, for now we should be fine
+         and can fine tune things down the road.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Interfacing
@@ -138,12 +146,13 @@ Interfacing
      implements the DAO interface
         ex) MeetingDAOImpl implements the MeetingDAO interface, which implements the DAO interface
     3) Every Entity should extend the DataObject interface
-    4) Public functions (non-helper functions) should be declared in interface so they can be used/tested
+    4) Public functions (non-helper functions) for each of these types of classes should be declared in their
+       corresponding interface so they can be used/tested
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 JSON
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-The current strategy for parsing JSON requests and creating JSON responses is not final. If we find a better way,
+The strategy I used to parse/create JSON probably isn't the only way. If we find a better way,
 we can switch to that. Currently I am doing the following...
 
 To PARSE Json from an HTTP request...
